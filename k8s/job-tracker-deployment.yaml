@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: job-tracker
+    namespace: demo
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: job-tracker
+    template:
+        metadata:
+            labels:
+                app: job-tracker
+        spec:
+            containers:
+            - name: job-tracker
+              image: job-tracker:latest
+              imagePullPolicy: Never
+              ports:
+              - containerPort: 8080
+              env:
+              - name: SPRING_PROFILES_ACTIVE
+                value: local
+              - name: SPRING_DATASOURCE_URL
+                value: jdbc:postgresql://postgres:5432/jobtracker
+              - name: SPRING_DATASOURCE_USERNAME
+                value: demo
+              - name: SPRING_DATASOURCE_PASSWORD
+                value: changeme
+              readinessProbe:
+                httpGet:
+                  path: /actuator/health
+                  port: 8080
+                initialDelaySeconds: 30
+                periodSeconds: 5
+              startupProbe:
+                httpGet:
+                  path: /actuator/health
+                  port: 8080
+                failureThreshold: 30
+                periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: job-tracker
+    namespace: demo
+spec:
+    type: LoadBalancer
+    selector:
+        app: job-tracker
+    ports:
+    - port: 80
+      targetPort: 8080
